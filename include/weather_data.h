@@ -16,7 +16,6 @@ class Weather_data
     
     public:
     Weather_data();
-    //~Weather_data();
 
     void _set_timezone_offset(int timezone_offset);
     void _set_pressure(int pressure);
@@ -38,8 +37,6 @@ class Weather_data
     vector<string> _get_alert_event();
     vector<string> _get_alert_description();
 };
-
-//extern Weather_data Weather;
 void _list_vector(vector<int> vec);
 
 #endif

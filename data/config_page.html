@@ -1,0 +1,314 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <title>HomeAutomaton Configuration Page</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <style>
+        html {
+            font-family: sans-serif;
+            text-align: center;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        h1 {
+            font-family: sans-serif;
+            font-size: 1.4rem;
+            text-align: center;
+            color: white;
+        }
+
+        h2 {
+            font-family: sans-serif;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .card-wifi {
+            background-color: #0f0f0f;
+            padding-top: 10px;
+            padding-bottom: 20px;
+            border-radius: 25px;
+            margin: 1px;
+            margin-bottom: 15px;
+            vertical-align: middle;
+        }
+
+        .card-apk {
+            background-color: #0f0f0f;
+            padding-top: 15px;
+            padding-bottom: 20px;
+            border-radius: 25px;
+            margin: 1px;
+            vertical-align: middle;
+        }
+
+        .topnav {
+            overflow: hidden;
+            background-color: #0f0f0f;
+            border-radius: 25px;
+            margin: 20px;
+            box-shadow: 2px 2px 12px 1px rgba(140, 140, 140, 0.459);
+            width: 580px;
+            align-self: center;
+            display: inline-block;
+        }
+
+        body {
+            margin: 0;
+            background-color: #242424;
+        }
+
+        .content {
+            padding: 15px;
+            width: 580px;
+            margin: 0 auto;
+        }
+        .slider-container {
+            width: 580px;
+            height:fit-content;
+            padding-top: 20px;
+            padding-bottom: 20px;
+            display: inline-block;
+            align-self: center;
+            border-radius: 25px;
+            background-color:#0f0f0f;
+            vertical-align: middle;
+        }
+        .radio-container {
+            display: inline-block;
+        }
+        .slider {
+            width: 480px;
+            height: 10px;
+            color: #242424;
+            accent-color: #bba96d;
+            border-radius: 5px;
+            background: #ccc; /* Background color of the slider */
+            outline: none;
+        }   
+    </style>
+    <title>HomeAutomaton Config Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+</head>
+
+<body onload="setModeOnLoad()">
+    <div class="topnav">
+        <h1>HomeAutomaton Configuration Page</h1>
+    </div>
+    <div class="content">
+        <form id="wifiForm" action="/SubmitWiFi" method="POST" class="card-wifi" enctype="application/x-www-form-urlencoded">
+            <label for="ssid">WiFi SSID:</label><br>
+            <input type="text" id="ssid" name="ssid" autocomplete="off" required><br>
+            <label for="password">Password:</label><br>
+            <input type="password" id="password" name="password" required><br><br>
+            <input type="submit" value="Submit">
+        </form>
+        <form id="apiForm" action="/SubmitAPI" method="POST" class="card-apk" enctype="application/x-www-form-urlencoded">
+            <label for="apikey">Openweathermap API-key:</label><br>
+            <input type="text" id="apikey" name="apikey" autocomplete="off" required><br><br>
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+    <div class="slider-container">
+        <form id="modeForm" action="/SubmitMode" method="POST">
+            <label for="window">Window opener angle</label>
+            <input type="range" min="0" max="100" value="%.2f" id="window" class="slider"><br>
+            <label for="temp">Desired temperature: <span id="tempvalue">%d</span> °C</label>
+            <input type="range" min="10" max="30" value="%d" id="temp" class="slider" disabled="true"><br>
+            <div class="radio-container">
+                <input type="radio" id="auto" name="choosemode" value="auto" onclick="toggleAutoManual()">
+                <label for="auto">Automatic</label>
+                <input type="radio" id="manual" name="choosemode" value="manual" onclick="toggleAutoManual()">
+                <label for="manual">Manual</label>
+            </div><br><br>
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+    <script>
+
+        document.getElementById("modeForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            //Get form data
+            var formData = {
+                choosemode: document.querySelector('input[name="choosemode"]:checked').value,
+                window: document.getElementById("window").value,
+                temp: document.getElementById("temp").value
+            };
+
+            //Convert form data to URL-encoded format
+            var urlEncodedData = "";
+            for (var key in formData) {
+                if (formData.hasOwnProperty(key)) {
+                if (urlEncodedData.length > 0) {
+                    urlEncodedData += "&";
+                }
+                urlEncodedData += encodeURIComponent(key) + "=" + encodeURIComponent(formData[key]);
+                }
+            }
+
+            //Send POST request using fetch API
+            fetch("/SubmitMode", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: urlEncodedData
+            })
+            .then(response => {
+                if (!response.ok) {
+                throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log(data); //Handle server response
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+        });
+
+        document.getElementById("wifiForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            //Get form data
+            var formData = {
+                ssid: document.getElementById("ssid").value,
+                password: document.getElementById("password").value
+            };
+
+            //Convert form data to URL-encoded format
+            var urlEncodedData = "";
+            for (var key in formData) {
+                if (formData.hasOwnProperty(key)) {
+                if (urlEncodedData.length > 0) {
+                    urlEncodedData += "&";
+                }
+                urlEncodedData += encodeURIComponent(key) + "=" + encodeURIComponent(formData[key]);
+                }
+            }
+
+            //Send POST request using fetch API
+            fetch("/SubmitWiFi", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: urlEncodedData
+            })
+            .then(response => {
+                if (!response.ok) {
+                throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log(data); //Handle server response
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+        });
+
+        document.getElementById("apiForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Prevent the default form submission
+
+            //Get form data
+            var formData = {
+                apikey: document.getElementById("apikey").value,
+            };
+
+            //Convert form data to URL-encoded format
+            var urlEncodedData = "";
+            for (var key in formData) {
+                if (formData.hasOwnProperty(key)) {
+                if (urlEncodedData.length > 0) {
+                    urlEncodedData += "&";
+                }
+                urlEncodedData += encodeURIComponent(key) + "=" + encodeURIComponent(formData[key]);
+                }
+            }
+
+            //Send POST request using fetch API
+            fetch("/SubmitAPI", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: urlEncodedData
+            })
+            .then(response => {
+                if (!response.ok) {
+                throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log(data); //Handle server response
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+        });
+
+        var tempslider = document.getElementById("temp");
+        var windowslider = document.getElementById("window");
+        var tempoutput = document.getElementById("tempvalue");
+        var checked = document.getElementsByName("choosemode");
+        //This "s" character is intentional because sprintf is being used to modify the config page
+        var auto = %s;
+
+        function setModeOnLoad()
+        {
+            if (auto == true)
+            {
+                checked[0].checked = true;
+                checked[1].checked = false;
+                windowslider.disabled = true;
+                tempslider.disabled = false;
+                return;
+            }
+            else
+            {
+                checked[0].checked = false;
+                checked[1].checked = true;
+                windowslider.disabled = false;
+                tempslider.disabled = true;
+                return;
+            }
+        }
+        function toggleAutoManual()
+        {
+            //We're checking which radiobutton is selected, the we disable the temperature slider if
+            //we want to control the window manually and we disable the manual control slider if we
+            //want to control the window opener automatically.
+            if (checked[0].checked && !checked[1].checked)
+            {
+                windowslider.disabled = true;
+                tempslider.disabled = false;
+                return;
+            }
+            else if (!checked[0].checked && checked[1].checked)
+            {
+                windowslider.disabled = false;
+                tempslider.disabled = true;
+                return;
+            }
+        }
+        
+        //Checking the value of the temperature slider, then displaying it with a label attached to it.
+        tempoutput.textContent = tempslider.value;
+        tempslider.addEventListener("input", function() {
+        tempoutput.textContent = this.value;
+});
+    </script>
+</body>
+
+</html>

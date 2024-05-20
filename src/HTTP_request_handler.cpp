@@ -28,6 +28,7 @@
 #include "esp_crt_bundle.h"
 #include "JSON_parser.h"
 #include "credentials.h"
+#include "store_data.h"
 
 using namespace std;
 
@@ -38,10 +39,9 @@ using namespace std;
 static const char *TAG = "HTTPS_REQUEST";
 float latitude = LAT, longitude = LON;
 //TODO: Make the app_id not hardcoded into the source code.
-static const char *openweathermap_app_id = OPENWEATHERMAP_APP_ID;
+extern string openweathermap_app_id = nvs_read_apikey();
 
-
-string GET_REQUEST(float latitude, float longitude, const char* openweathermap_app_id){
+string GET_REQUEST(float latitude, float longitude, string openweathermap_app_id){
     /*
      * This function constructs a request string that will be sent to the server.The string should look like this:
      * https://api.openweathermap.org/data/2.5/onecall?lat=%f&lon=%f&units=metric&exclude=minutely,hourly,daily&appid=%s"

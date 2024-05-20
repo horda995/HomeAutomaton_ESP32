@@ -5,6 +5,7 @@
 
 void Publisher_Task(void *params);
 void mqtt_app_start(void);
-void check_LED_task(void *params);
+void check_LED_task(void *Params);
+void mqtt_app_stop();
 
 #endif

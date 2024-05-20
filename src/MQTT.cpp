@@ -15,7 +15,8 @@
 #include "credentials.h"
 
 
-#define BLINK_GPIO GPIO_NUM_2
+#define LED_PIN GPIO_NUM_2
+
 static const char *TAG = "MQTT_HANDLER";
 static const char *topic_address = MQTT_TOPIC_ADDRESS;
 static const char *topic = MQTT_TOPIC;
@@ -56,22 +57,25 @@ void mqtt_json_parser(const char* const json_data){
         if (window_deg->valuedouble != Internal_room_data.get_window_deg())
         {
             Internal_room_data.set_window_deg(window_deg->valuedouble);
-            gpio_set_level(BLINK_GPIO, 1);
+            gpio_set_level(LED_PIN, 1);
         }
     }
     end:
     cJSON_Delete(data);
 }
+
 void check_LED_task(void *Params)
 {
     //Turning the onboard LED off, if it was turned on before.
+    
     while(1)
     {
-        if (gpio_get_level(BLINK_GPIO) == 1)
+        ESP_LOGI("GPIO:","GPIO2: %d", gpio_get_level(LED_PIN));
+        if (gpio_get_level(LED_PIN) == 1)
         {
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-            gpio_set_level(BLINK_GPIO, 0);
+            gpio_set_level(LED_PIN, 0);
         }
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 
@@ -118,16 +122,16 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     switch ((esp_mqtt_event_id_t)event_id)
     {
         case MQTT_EVENT_CONNECTED:
+            TaskHandle_t Publisher_Task_Handle;
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
             MQTT_CONNECTED=1;
             msg_id = esp_mqtt_client_subscribe(client, topic_address, 0);
             ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
-            TaskHandle_t Publisher_Task_Handle;
-            xTaskCreate(Publisher_Task, "Publisher_Task", 1024 * 5, NULL, 5, &Publisher_Task_Handle);
+            xTaskCreate(Publisher_Task, "Publisher_Task", 5120, NULL, 5, &Publisher_Task_Handle);
             break;
         case MQTT_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-            vTaskDelete(Publisher_Task_Handle);
+            //vTaskDelete(Publisher_Task_Handle);
             MQTT_CONNECTED=0;
             break;
 
@@ -164,6 +168,11 @@ void mqtt_app_start(void)
     client = esp_mqtt_client_init(&mqttConfig);
     esp_mqtt_client_register_event(client, (esp_mqtt_event_id_t)ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
     esp_mqtt_client_start(client);
+}
+
+void mqtt_app_stop()
+{
+    esp_mqtt_client_stop(client);
 }
 /* The following function is responsible for constructing the data formatted in JSON,
  * then publishing it periodically to the MQTT broker.

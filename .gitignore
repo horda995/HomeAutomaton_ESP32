@@ -15,3 +15,5 @@ src/keep_alive.cpp.old
 src/wss_server_example.cpp.old
 ESP
 helplist.txt
+data/index.html
+data/test.html
