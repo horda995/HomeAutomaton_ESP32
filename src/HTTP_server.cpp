@@ -129,15 +129,6 @@ void fill_config_page()
                                             Internal_room_data.get_desired_temperature(),
                                             "false");
     }
-    /*
-    if (Internal_room_data.get_is_auto())
-    {
-        sprintf(response_data, config_html, "true");
-    }
-    else
-    {
-        sprintf(response_data, config_html, "false");
-    }*/
 }
 
 //The HTTP-GET handler of the config page which returns the page itself.
@@ -404,7 +395,85 @@ static esp_err_t submit_mode_post_handler(httpd_req_t *req)
     //End response
     free (req_hdr);
     free (buf);
+    return ESP_OK;
+}
 
+static esp_err_t submit_coordinates_post_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "/ content length %d", req->content_len);
+
+    char*  buf = (char*)malloc(req->content_len + 1);
+    size_t off = 0;
+    int ret;
+
+    if (!buf)
+    {
+        ESP_LOGE(TAG, "Failed to allocate memory of %d bytes!", req->content_len + 1);
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+
+    while (off < req->content_len)
+    {
+        //Read data received in the request
+        ret = httpd_req_recv(req, buf + off, req->content_len - off);
+        if (ret <= 0) {
+            if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+                httpd_resp_send_408(req);
+            }
+            free (buf);
+            return ESP_FAIL;
+        }
+        off += ret;
+        ESP_LOGI(TAG, "/ Recv length %d", ret);
+    }
+    buf[off] = '\0';
+
+    if (req->content_len < 128) {
+        ESP_LOGI(TAG, "/ data: %s", buf);
+    }
+
+    //Search for Custom header field
+    char*  req_hdr = 0;
+    size_t hdr_len = httpd_req_get_hdr_value_len(req, "Custom");
+    if (hdr_len)
+    {
+        //Read Custom header value
+        req_hdr = (char*)malloc(hdr_len + 1);
+        if (!req_hdr)
+        {
+            ESP_LOGE(TAG, "Failed to allocate memory of %d bytes!", hdr_len + 1);
+            httpd_resp_send_500(req);
+            return ESP_FAIL;
+        }
+        httpd_req_get_hdr_value_str(req, "Custom", req_hdr, hdr_len + 1);
+
+        //Set as additional header for response packet
+        httpd_resp_set_hdr(req, "Custom", req_hdr);
+    }
+    
+    //Parsing the coordinates
+    if (parse_url(buf, "lon") != "" && parse_url(buf, "lat") != "")
+    {
+        Weather.set_lat(stof(parse_url(buf, "lat")));
+        ESP_LOGI(TAG, "Latitude has been changed to: %f", Weather.get_lat());
+        nvs_write_latitude(Weather.get_lat());
+
+        Weather.set_lon(stof(parse_url(buf, "lon")));
+        ESP_LOGI(TAG, "Longitude has been changed to: %f", Weather.get_lon());
+        nvs_write_longitude(Weather.get_lon());
+        //Resetting the weather task
+        vTaskDelete(http_request_task_handle);
+        xTaskCreate(&https_request_task, "https_request_task", 8192, NULL, 5, &http_request_task_handle);
+    }
+    
+    
+    fill_config_page();
+    httpd_resp_set_type(req, "text/html");
+    httpd_resp_send(req, response_data, HTTPD_RESP_USE_STRLEN);
+    //End response
+    free (req_hdr);
+    free (buf);
     return ESP_OK;
 }
 
@@ -441,6 +510,17 @@ static const httpd_uri_t submit_mode_post =
     .supported_subprotocol = NULL
 };
 
+static const httpd_uri_t submit_coordinates_post =
+{
+    .uri = "/SubmitCoordinates",
+    .method = HTTP_POST,
+    .handler  = submit_coordinates_post_handler,
+    .user_ctx  = NULL,
+    .is_websocket = NULL,
+    .handle_ws_control_frames = NULL,
+    .supported_subprotocol = NULL
+};
+
 
 httpd_handle_t start_webserver(void)
 {
@@ -458,6 +538,7 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &submit_wifi_post);
         httpd_register_uri_handler(server, &submit_api_key_post);
         httpd_register_uri_handler(server, &submit_mode_post);
+        httpd_register_uri_handler(server, &submit_coordinates_post);
         return server;
     }
 

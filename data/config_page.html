@@ -34,6 +34,7 @@
             padding-bottom: 20px;
             border-radius: 25px;
             margin: 1px;
+            margin-top: 15px;
             margin-bottom: 15px;
             vertical-align: middle;
         }
@@ -43,6 +44,7 @@
             padding-top: 15px;
             padding-bottom: 20px;
             border-radius: 25px;
+            margin-bottom: 15px;
             margin: 1px;
             vertical-align: middle;
         }
@@ -73,6 +75,7 @@
             height:fit-content;
             padding-top: 20px;
             padding-bottom: 20px;
+            margin: 0 auto;
             display: inline-block;
             align-self: center;
             border-radius: 25px;
@@ -112,6 +115,13 @@
         <form id="apiForm" action="/SubmitAPI" method="POST" class="card-apk" enctype="application/x-www-form-urlencoded">
             <label for="apikey">Openweathermap API-key:</label><br>
             <input type="text" id="apikey" name="apikey" autocomplete="off" required><br><br>
+            <input type="submit" value="Submit">
+        </form>
+        <form id="coordinatesForm" action="/SubmitCoordinates" method="POST" class="card-wifi" enctype="application/x-www-form-urlencoded">
+            <label for="lat">Latitude:</label><br>
+            <input type="number" max="180" min="-180" step="0.01" id="lat" name="lat" required pattern="\d+(\.\d+)?"><br>
+            <label for="lon">Longitude:</label><br>
+            <input type="number" max="180" min="-180" step="0.01" id="lon" name="lon" required pattern="\d+(\.\d+)?"><br><br>
             <input type="submit" value="Submit">
         </form>
     </div>
@@ -176,7 +186,7 @@
         });
 
         document.getElementById("wifiForm").addEventListener("submit", function(event) {
-            event.preventDefault(); // Prevent the default form submission
+            event.preventDefault(); //Prevent the default form submission
 
             //Get form data
             var formData = {
@@ -197,6 +207,48 @@
 
             //Send POST request using fetch API
             fetch("/SubmitWiFi", {
+                method: "POST",
+                headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: urlEncodedData
+            })
+            .then(response => {
+                if (!response.ok) {
+                throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log(data); //Handle server response
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+        });
+
+        document.getElementById("coordinatesForm").addEventListener("submit", function(event) {
+            event.preventDefault(); //Prevent the default form submission
+
+            //Get form data
+            var formData = {
+                lat: document.getElementById("lat").value,
+                lon: document.getElementById("lon").value
+            };
+
+            //Convert form data to URL-encoded format
+            var urlEncodedData = "";
+            for (var key in formData) {
+                if (formData.hasOwnProperty(key)) {
+                if (urlEncodedData.length > 0) {
+                    urlEncodedData += "&";
+                }
+                urlEncodedData += encodeURIComponent(key) + "=" + encodeURIComponent(formData[key]);
+                }
+            }
+
+            //Send POST request using fetch API
+            fetch("/SubmitCoordinates", {
                 method: "POST",
                 headers: {
                 "Content-Type": "application/x-www-form-urlencoded"

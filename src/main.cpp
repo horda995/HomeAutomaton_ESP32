@@ -14,13 +14,15 @@
 
 #include "WiFi_STA.h"
 #include "HTTP_request_handler.h"
-#include "DHT_sensor.h"
 #include "room_data.h"
+#include "weather_data.h"
 #include "MQTT.h"
 #include "HTTP_server.h"
 #include "esp_https_server.h"
 #include "credentials.h"
 #include "store_data.h"
+#include <bme680.h>
+#include "bme680_sensor.h"
 
 #define LED_PIN GPIO_NUM_2
 
@@ -34,6 +36,7 @@ char def_ssid[33] = WIFI_SSID_DEFAULT;
 char def_pass[64] = WIFI_PWD_DEFAULT;
 
 Room_data Internal_room_data;
+Weather_data Weather;
 
 void setup_LED_GPIO()
 {
@@ -72,6 +75,8 @@ void init_flash_settings()
     Internal_room_data.set_window_deg(nvs_read_window_deg()/100);
     Internal_room_data.set_desired_temperature(nvs_read_desired_temp());
     Internal_room_data.set_is_auto(nvs_read_operation_mode());
+    Weather.set_lat(nvs_read_latitude()/100);
+    Weather.set_lon(nvs_read_longitude()/100);
 }
 
 //Starting the Wi-Fi module.
@@ -88,20 +93,26 @@ void app_main(void)
 {  
     //Initializing NVS
     init_flash_settings();
+    vTaskDelay(100 / portTICK_PERIOD_MS);
     //Loading the configuration page from the flash memory
     config_web_page_buffer();
+    vTaskDelay(100 / portTICK_PERIOD_MS);
     //Configuring the onboard LED
     setup_LED_GPIO();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    //Setting up the sensor
+    ESP_ERROR_CHECK(i2cdev_init());
+    xTaskCreatePinnedToCore(bme680_measure, "bme680_measure", configMINIMAL_STACK_SIZE * 8, NULL, 5, NULL, APP_CPU_NUM);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
     //Initializing the Wi-Fi settings
     init_wifi_settings();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-    //Creating the temperature measurement task
-    xTaskCreate(dht_measure, "dht_test", 8192, NULL, 5, NULL);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
     //Creating the weather data request task
     xTaskCreate(&https_request_task, "https_request_task", 8192, NULL, 5, &http_request_task_handle);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
     //Creating the LED turn-off task
     xTaskCreate(control_LED_task, "control_LED_task", 2048, NULL, 5, NULL);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
     //Getting the current time
     configure_time();
 }

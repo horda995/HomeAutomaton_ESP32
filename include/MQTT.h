@@ -7,5 +7,6 @@ void Publisher_Task(void *params);
 void mqtt_app_start(void);
 void check_LED_task(void *Params);
 void mqtt_app_stop();
+void MQTT_Publish_Controls();
 
 #endif

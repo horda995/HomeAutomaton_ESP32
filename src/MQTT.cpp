@@ -31,34 +31,59 @@ void Publisher_Task(void *params);
 
 //Parsing the window position data from the acquired JSON file.
 void mqtt_json_parser(const char* const json_data){
-    const cJSON *window_deg = NULL, *phone_data = NULL;
+
+    const cJSON *window_deg = NULL, *desired_temperature = NULL, *is_auto = NULL, *phone_data = NULL;
     cJSON *data = cJSON_Parse(json_data);
-    if (data == NULL){
-        const char *error_ptr = cJSON_GetErrorPtr();
-            if (error_ptr != NULL){
-                fprintf(stderr, "Error before: %s\n", error_ptr);
-            }
-        goto end;
-    }
-    phone_data = cJSON_GetObjectItemCaseSensitive(data, topic);
-    if (phone_data == NULL){
-        const char *error_ptr = cJSON_GetErrorPtr();
-            if (error_ptr != NULL){
-                fprintf(stderr, "Error before: %s\n", error_ptr);
-            }
-        goto end;
-    }
-    else
-        window_deg = cJSON_GetObjectItemCaseSensitive(phone_data, "windowDeg");
     
+    if (data == NULL)
+    {
+        const char *error_ptr = cJSON_GetErrorPtr();
+            if (error_ptr != NULL){
+                fprintf(stderr, "Error before: %s\n", error_ptr);
+            }
+        goto end;
+    }
+
+    phone_data = cJSON_GetObjectItemCaseSensitive(data, topic);
+    if (phone_data == NULL)
+    {
+        const char *error_ptr = cJSON_GetErrorPtr();
+            if (error_ptr != NULL){
+                fprintf(stderr, "Error before: %s\n", error_ptr);
+            }
+        goto end;
+    }
+
     //Writing the parsed data to a class member, and making the onboard LED blink once.
-    if (cJSON_IsNumber(window_deg)){
+    window_deg = cJSON_GetObjectItemCaseSensitive(phone_data, "windowDeg");
+    if (cJSON_IsNumber(window_deg))
+    {
         ESP_LOGI("MQTT_JSON_PARSER:", "window_deg: %f", window_deg->valuedouble);
-        if (window_deg->valuedouble != Internal_room_data.get_window_deg())
+        Internal_room_data.set_window_deg(window_deg->valuedouble);
+        gpio_set_level(LED_PIN, 1);
+    }
+
+    desired_temperature = cJSON_GetObjectItemCaseSensitive(phone_data, "desiredTemperature");
+    if (cJSON_IsNumber(desired_temperature))
+    {
+        ESP_LOGI("MQTT_JSON_PARSER:", "desired_temperature: %d", desired_temperature->valueint);
+        Internal_room_data.set_desired_temperature(desired_temperature->valueint);
+        gpio_set_level(LED_PIN, 1);
+    }
+
+    is_auto = cJSON_GetObjectItemCaseSensitive(phone_data, "isAuto");
+    if (cJSON_IsNumber(is_auto))
+    {
+        ESP_LOGI("MQTT_JSON_PARSER:", "is_auto: %d", is_auto->valueint);
+        if (is_auto->valueint == 1)
         {
-            Internal_room_data.set_window_deg(window_deg->valuedouble);
-            gpio_set_level(LED_PIN, 1);
+            Internal_room_data.set_is_auto(true);
         }
+        else if (is_auto->valueint == 0)
+        {
+            Internal_room_data.set_is_auto(false);
+        }
+        gpio_set_level(LED_PIN, 1);
     }
     end:
     cJSON_Delete(data);
@@ -87,28 +112,46 @@ void MQTT_publish()
             *it is necessary to treat them as such.
             */
         string weather_id_JSON =  "[", weather_alert_event_JSON = "[";
-        for (int i =0; i < Weather._get_weather_id().capacity(); i++)
+        for (int i =0; i < Weather.get_weather_id().capacity(); i++)
         {
-            weather_id_JSON += to_string(Weather._get_weather_id()[i]);
-            if (i < Weather._get_weather_id().capacity() - 1)
+            weather_id_JSON += to_string(Weather.get_weather_id()[i]);
+            if (i < Weather.get_weather_id().capacity() - 1)
                 weather_id_JSON += ",";
         }
-        for (int i =0; i < Weather._get_alert_event().capacity(); i++)
+        for (int i =0; i < Weather.get_alert_event().capacity(); i++)
         {
-            weather_alert_event_JSON += "\"" + Weather._get_alert_event()[i] + "\"" ;
-            if (i < Weather._get_alert_event().capacity() - 1)
+            weather_alert_event_JSON += "\"" + Weather.get_alert_event()[i] + "\"" ;
+            if (i < Weather.get_alert_event().capacity() - 1)
                 weather_alert_event_JSON += ",";
         }       
         weather_id_JSON += "]";
         weather_alert_event_JSON += "]";
 
-        string internal_data_JSON = "{\"internal_temperature\":" + to_string(Internal_room_data.get_internal_temperature()) + ",\"internal_humidity\":" + to_string(Internal_room_data.get_internal_humidity()) + "}";
-        string weather_data_JSON = "{\"weather_temperature\":" + to_string(Weather._get_temp()) + ",\"weather_humidity\":" + to_string(Weather._get_humidity()) +
-                                    ",\"weather_wind_speed\":"+ to_string(Weather._get_wind_speed()) + ",\"weather_wind_deg\":" + to_string(Weather._get_wind_deg()) + 
+        //Creating a JSON formatted string
+        string internal_data_JSON = "{\"internal_temperature\":" + to_string(Internal_room_data.get_internal_temperature()) + 
+                                    ",\"internal_humidity\":"+ to_string(Internal_room_data.get_internal_humidity()) +
+                                    ",\"gas_resistance\":"+ to_string(Internal_room_data.get_gas_resistance()) /*+
+                                    ",\"window_deg\":"+ to_string(Internal_room_data.get_window_deg()) + 
+                                    ",\"desired_temperature\":"+ to_string(Internal_room_data.get_desired_temperature()) + 
+                                    ",\"is_auto\":"+ to_string(Internal_room_data.get_is_auto()) */ + "}";
+        string weather_data_JSON = "{\"weather_temperature\":" + to_string(Weather.get_temp()) + ",\"weather_humidity\":" + to_string(Weather.get_humidity()) +
+                                    ",\"weather_wind_speed\":"+ to_string(Weather.get_wind_speed()) + ",\"weather_wind_deg\":" + to_string(Weather.get_wind_deg()) + 
                                     ",\"weather_id\":" + weather_id_JSON + ",\"weather_alert_event\":" + weather_alert_event_JSON +"}";
         string MCU_data_JSON = "{\"internal_data\":" + internal_data_JSON + ",\"weather_data\":" + weather_data_JSON + "}" ;
-
+        //Sending the data to the MQTT broker
         esp_mqtt_client_publish(client, "/topic/MCU_data", MCU_data_JSON.c_str(), 0, 0, 0);
+    }
+}
+
+void MQTT_Publish_Controls()
+{
+    if (MQTT_CONNECTED)
+    {
+        string internal_data_JSON = "{\"window_deg\":"+ to_string(Internal_room_data.get_window_deg()) + 
+                                    ",\"desired_temperature\":"+ to_string(Internal_room_data.get_desired_temperature()) + 
+                                    ",\"is_auto\":"+ to_string(Internal_room_data.get_is_auto()) + "}";
+        //Sending the data to the MQTT broker
+        esp_mqtt_client_publish(client, "/topic/MCU_data", internal_data_JSON.c_str(), 0, 0, 0);
     }
 }
 

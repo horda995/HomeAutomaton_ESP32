@@ -51,7 +51,7 @@ void parse_weather_json(string response_string)
     if (cJSON_IsNumber(current_temp_JSON) )
     {
         ESP_LOGI(TAG, "Current temperature: %f", current_temp_JSON -> valuedouble);
-        Weather._set_temp(current_temp_JSON -> valuedouble);
+        Weather.set_temp(current_temp_JSON -> valuedouble);
     }
     else
         ESP_LOGE(TAG, "Failed to get current_JSON temperature.");
@@ -60,7 +60,7 @@ void parse_weather_json(string response_string)
     if (cJSON_IsNumber(current_pressure) )
     {
         ESP_LOGI(TAG, "Current pressure: %d", current_pressure -> valueint);
-        Weather._set_pressure(current_pressure -> valueint);
+        Weather.set_pressure(current_pressure -> valueint);
     }
     else
         ESP_LOGE(TAG, "Failed to get current_JSON pressure.");
@@ -69,7 +69,7 @@ void parse_weather_json(string response_string)
     if (cJSON_IsNumber(current_humidity_JSON) )
     {
         ESP_LOGI(TAG, "Current humidity: %d", current_humidity_JSON -> valueint);
-        Weather._set_humidity(current_humidity_JSON -> valueint);
+        Weather.set_humidity(current_humidity_JSON -> valueint);
     }
     else
         ESP_LOGE(TAG, "Failed to get current_JSON humidity.");
@@ -78,7 +78,7 @@ void parse_weather_json(string response_string)
     if (cJSON_IsNumber(current_wind_speed_JSON) )
     {
         ESP_LOGI(TAG, "Current wind speed: %f", current_wind_speed_JSON -> valuedouble);
-        Weather._set_wind_speed(current_wind_speed_JSON -> valuedouble);
+        Weather.set_wind_speed(current_wind_speed_JSON -> valuedouble);
     }
     else
         ESP_LOGE(TAG, "Failed to get current_JSON wind speed.");
@@ -87,7 +87,7 @@ void parse_weather_json(string response_string)
     if (cJSON_IsNumber(current_wind_deg_JSON) )
     {
         ESP_LOGI(TAG, "Current wind direction: %d", current_wind_deg_JSON -> valueint);
-        Weather._set_wind_deg(current_wind_deg_JSON -> valueint);
+        Weather.set_wind_deg(current_wind_deg_JSON -> valueint);
     }
     else
         ESP_LOGE(TAG, "Failed to get current_JSON wind direction.");
@@ -113,7 +113,7 @@ void parse_weather_json(string response_string)
             else
                 ESP_LOGE(TAG, "Failed to get weather id.");
         }
-        Weather._set_weather_id(temp_id);
+        Weather.set_weather_id(temp_id);
     }
     //We do similarly with weather alerts.
     alerts_JSON = cJSON_GetObjectItem(openweathermap_data, "alerts");
@@ -146,8 +146,8 @@ void parse_weather_json(string response_string)
             else
                 ESP_LOGE(TAG, "Failed to get alert description.");
         }
-        Weather._set_alert_event(temp_event);
-        Weather._set_alert_description(temp_description);
+        Weather.set_alert_event(temp_event);
+        Weather.set_alert_description(temp_description);
     }
     json_parse_end:
     cJSON_Delete(openweathermap_data);

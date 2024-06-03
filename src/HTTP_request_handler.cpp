@@ -29,17 +29,17 @@
 #include "JSON_parser.h"
 #include "credentials.h"
 #include "store_data.h"
+#include "weather_data.h"
 
 using namespace std;
 
 #define WEB_SERVER "api.openweathermap.org"
 #define WEB_PORT "443"
 
-//TODO: Add a select geolocation feature.
+extern Weather_data Weather;
+string openweathermap_app_id = nvs_read_apikey();
 static const char *TAG = "HTTPS_REQUEST";
 float latitude = LAT, longitude = LON;
-//TODO: Make the app_id not hardcoded into the source code.
-extern string openweathermap_app_id = nvs_read_apikey();
 
 string GET_REQUEST(float latitude, float longitude, string openweathermap_app_id){
     /*
@@ -78,7 +78,7 @@ void https_request_task(void *pvParameters)
     mbedtls_ssl_init(&ssl);
     mbedtls_x509_crt_init(&cacert);
     mbedtls_ctr_drbg_init(&ctr_drbg);
-    string REQUEST = GET_REQUEST(latitude, longitude, openweathermap_app_id);
+    string REQUEST = GET_REQUEST(Weather.get_lat(), Weather.get_lon(), openweathermap_app_id);
     
     mbedtls_ssl_config_init(&conf); //Initializing mbedtls.
     mbedtls_entropy_init(&entropy);
