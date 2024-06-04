@@ -114,21 +114,28 @@ void MQTT_publish()
         /*Because the weather and weather alert related members of the class object are dynamic arrays,
             *it is necessary to treat them as such.
             */
-        string weather_id_JSON =  "[", weather_alert_event_JSON = "[";
-        for (int i =0; i < Weather.get_weather_id().capacity(); i++)
+        string weather_id_JSON =  "[", weather_alert_event_JSON = "[", weather_alert_desc_JSON = "[";
+        for (int i = 0; i < Weather.get_weather_id().capacity(); i++)
         {
             weather_id_JSON += to_string(Weather.get_weather_id()[i]);
             if (i < Weather.get_weather_id().capacity() - 1)
                 weather_id_JSON += ",";
         }
-        for (int i =0; i < Weather.get_alert_event().capacity(); i++)
+        for (int i = 0; i < Weather.get_alert_event().capacity(); i++)
         {
             weather_alert_event_JSON += "\"" + Weather.get_alert_event()[i] + "\"" ;
             if (i < Weather.get_alert_event().capacity() - 1)
                 weather_alert_event_JSON += ",";
-        }       
+        }
+        for (int i = 0; i < Weather.get_alert_description().capacity(); i++)
+        {
+            weather_alert_desc_JSON += "\"" + Weather.get_alert_description()[i] + "\"" ;
+            if (i < Weather.get_alert_description().capacity() - 1)
+                weather_alert_desc_JSON += ",";
+        }   
         weather_id_JSON += "]";
         weather_alert_event_JSON += "]";
+        weather_alert_desc_JSON += "]";
 
         //Creating a JSON formatted string
         string internal_data_JSON = "{\"internal_temperature\":" + to_string(Internal_room_data.get_internal_temperature()) + 
@@ -139,7 +146,7 @@ void MQTT_publish()
                                     ",\"is_auto\":"+ to_string(Internal_room_data.get_is_auto()) */ + "}";
         string weather_data_JSON = "{\"weather_temperature\":" + to_string(Weather.get_temp()) + ",\"weather_humidity\":" + to_string(Weather.get_humidity()) +
                                     ",\"weather_wind_speed\":"+ to_string(Weather.get_wind_speed()) + ",\"weather_wind_deg\":" + to_string(Weather.get_wind_deg()) + 
-                                    ",\"weather_id\":" + weather_id_JSON + ",\"weather_alert_event\":" + weather_alert_event_JSON +"}";
+                                    ",\"weather_id\":" + weather_id_JSON + ",\"weather_alert_event\":" + weather_alert_event_JSON + ",\"weather_alert_description\":" + weather_alert_desc_JSON +"}";
         string MCU_data_JSON = "{\"internal_data\":" + internal_data_JSON + ",\"weather_data\":" + weather_data_JSON + "}" ;
         //Sending the data to the MQTT broker
         esp_mqtt_client_publish(client, "/topic/MCU_data", MCU_data_JSON.c_str(), 0, 0, 0);
