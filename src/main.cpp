@@ -23,6 +23,7 @@
 #include "store_data.h"
 #include <bme680.h>
 #include "bme680_sensor.h"
+#include "motor_control.h"
 
 #define LED_PIN GPIO_NUM_2
 
@@ -102,7 +103,7 @@ void app_main(void)
     vTaskDelay(100 / portTICK_PERIOD_MS);
     //Setting up the sensor
     ESP_ERROR_CHECK(i2cdev_init());
-    xTaskCreatePinnedToCore(bme680_measure, "bme680_measure", configMINIMAL_STACK_SIZE * 8, NULL, 5, NULL, APP_CPU_NUM);
+    xTaskCreatePinnedToCore(bme680_measure, "bme680_measure", configMINIMAL_STACK_SIZE * 8, NULL, 5, NULL, APP_CPU_NUM); //2048?
     vTaskDelay(100 / portTICK_PERIOD_MS);
     //Initializing the Wi-Fi settings
     init_wifi_settings();
@@ -115,4 +116,5 @@ void app_main(void)
     vTaskDelay(100 / portTICK_PERIOD_MS);
     //Getting the current time
     configure_time();
+    xTaskCreate(motor_control_task, "motor_control_task", 4096, NULL, 3, NULL);
 }

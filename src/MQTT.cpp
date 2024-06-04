@@ -13,7 +13,7 @@
 #include "room_data.h"
 #include "weather_data.h"
 #include "credentials.h"
-
+#include "store_data.h"
 
 #define LED_PIN GPIO_NUM_2
 
@@ -60,6 +60,7 @@ void mqtt_json_parser(const char* const json_data){
     {
         ESP_LOGI("MQTT_JSON_PARSER:", "window_deg: %f", window_deg->valuedouble);
         Internal_room_data.set_window_deg(window_deg->valuedouble);
+        nvs_write_window_deg(Internal_room_data.get_window_deg());
         gpio_set_level(LED_PIN, 1);
     }
 
@@ -68,6 +69,7 @@ void mqtt_json_parser(const char* const json_data){
     {
         ESP_LOGI("MQTT_JSON_PARSER:", "desired_temperature: %d", desired_temperature->valueint);
         Internal_room_data.set_desired_temperature(desired_temperature->valueint);
+        nvs_write_desired_temp(Internal_room_data.get_desired_temperature());
         gpio_set_level(LED_PIN, 1);
     }
 
@@ -83,6 +85,7 @@ void mqtt_json_parser(const char* const json_data){
         {
             Internal_room_data.set_is_auto(false);
         }
+        nvs_write_operation_mode(Internal_room_data.get_is_auto());
         gpio_set_level(LED_PIN, 1);
     }
     end:
