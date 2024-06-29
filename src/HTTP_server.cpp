@@ -384,7 +384,7 @@ static esp_err_t submit_mode_post_handler(httpd_req_t *req)
     }
     if (parse_url(buf, "window") != "")
     {
-        Internal_room_data.set_window_deg(stof(parse_url(buf, "window"))/100);
+        Internal_room_data.set_window_deg(stof(parse_url(buf, "window")));
         ESP_LOGI(TAG, "Window angle has been changed to : %f", Internal_room_data.get_window_deg());
         nvs_write_window_deg(Internal_room_data.get_window_deg());
     }
